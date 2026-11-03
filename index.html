@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Биржевой информер</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Информер">
+<meta name="theme-color" content="#0f1720">
+<link rel="apple-touch-icon" id="touchIcon" href="">
+<style>
+/* Layout: one column phone app — sticky header, scrolling list, fixed tab bar at the bottom */
+:root{
+  --bg:#0f1720; --surface:#17212c; --surface2:#1f2b38; --line:#263445;
+  --fg:#e8eef5; --muted:#8a9bb0; --accent:#f2b84b;
+  --up:#2fbf71; --down:#f0565b; --upbg:rgba(47,191,113,.16); --downbg:rgba(240,86,91,.16);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f3f5f8; --surface:#ffffff; --surface2:#eaeef3; --line:#dde3ea;
+    --fg:#111a24; --muted:#5f6f82; --accent:#b77a0c;
+    --up:#14955a; --down:#d63a40; --upbg:rgba(20,149,90,.12); --downbg:rgba(214,58,64,.12); color-scheme:light }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 var(--font);-webkit-text-size-adjust:100%}
+body{padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:640px;margin:0 auto}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:10px;padding-block:10px 8px}
+.hrow h1{font-size:22px;font-weight:700;margin:0;flex:1;letter-spacing:-.01em}
+.stamp{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.iconbtn svg{width:18px;height:18px}
+.iconbtn.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.iconbtn.spin svg{animation:none}}
+
+.seg{display:flex;gap:4px;background:var(--surface2);padding:3px;border-radius:10px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1 0 auto;border:0;background:transparent;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+
+.notice{font-size:12.5px;color:var(--muted);padding:8px 0 0}
+.notice b{color:var(--accent);font-weight:600}
+.errors{font-size:12px;color:var(--down);padding-top:6px}
+
+.group{margin-top:14px}
+.group h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 6px;font-weight:600;display:flex;justify-content:space-between}
+.list{background:var(--surface);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);min-height:56px}
+.row:first-child{border-top:0}
+.ident{flex:1;min-width:0}
+.tick{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
+.name{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:2px 5px;border-radius:4px;background:var(--surface2);color:var(--muted)}
+.badge.us{color:var(--accent)}
+.px{text-align:right;font-variant-numeric:tabular-nums}
+.px .p{font-weight:600;font-size:15px}
+.px .t{font-size:11px;color:var(--muted)}
+.chg{min-width:74px;text-align:center;font-weight:700;font-size:13.5px;padding:6px 8px;border-radius:8px;font-variant-numeric:tabular-nums;background:var(--surface2);color:var(--muted)}
+.chg.up{background:var(--upbg);color:var(--up)}
+.chg.down{background:var(--downbg);color:var(--down)}
+.add{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:transparent;font-size:20px;line-height:1;display:grid;place-items:center;color:var(--accent);flex:none}
+.add.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.edit-ctl{display:flex;gap:4px;flex:none}
+.edit-ctl button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);font-size:14px}
+.edit-ctl .del{color:var(--down)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.empty button{margin-top:10px}
+.txtbtn{border:0;background:none;color:var(--accent);font-weight:600;padding:4px 0}
+.search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);margin-bottom:10px}
+
+.panel{background:var(--surface);border-radius:14px;padding:14px;display:grid;gap:10px;margin-top:14px}
+.panel h3{margin:0;font-size:16px}
+.panel p{margin:0;color:var(--muted);font-size:13.5px;max-width:62ch}
+.panel label{font-size:13px;color:var(--muted);display:grid;gap:6px}
+.panel input,.panel select{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);width:100%}
+.btn{padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:var(--bg);font-weight:700}
+.btn.ghost{background:var(--surface2);color:var(--fg)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+ol.steps{margin:0;padding-left:20px;color:var(--muted);font-size:13.5px;display:grid;gap:4px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs button{flex:1;border:0;background:none;padding:8px 0 6px;font-size:11px;color:var(--muted);display:grid;justify-items:center;gap:2px}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+.demo-flag{display:inline-block;font-size:10px;font-weight:700;background:var(--accent);color:var(--bg);padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hrow">
+      <h1 id="title">Портфель</h1>
+      <div class="stamp" id="stamp">—</div>
+      <button class="iconbtn" id="refreshBtn" aria-label="Обновить">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg>
+      </button>
+    </div>
+    <div id="subnav"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<nav class="tabs" aria-label="Разделы">
+  <button data-tab="portfolio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Портфель</button>
+  <button data-tab="catalog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Каталог</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Настройки</button>
+</nav>
+
+<script>
+"use strict";
+/* ======================= Каталог инструментов ======================= */
+const NDX100 = [
+ ["AAPL","Apple"],["MSFT","Microsoft"],["NVDA","NVIDIA"],["AMZN","Amazon"],["META","Meta Platforms"],["GOOGL","Alphabet A"],["GOOG","Alphabet C"],
+ ["AVGO","Broadcom"],["TSLA","Tesla"],["COST","Costco"],["NFLX","Netflix"],["PLTR","Palantir"],["ASML","ASML"],["TMUS","T-Mobile US"],
+ ["CSCO","Cisco"],["AMD","AMD"],["AZN","AstraZeneca"],["LIN","Linde"],["ISRG","Intuitive Surgical"],["INTU","Intuit"],["PEP","PepsiCo"],
+ ["SHOP","Shopify"],["TXN","Texas Instruments"],["BKNG","Booking"],["QCOM","Qualcomm"],["AMGN","Amgen"],["ADBE","Adobe"],["AMAT","Applied Materials"],
+ ["GILD","Gilead"],["HON","Honeywell"],["PDD","PDD Holdings"],["CMCSA","Comcast"],["MU","Micron"],["APP","AppLovin"],["ADP","ADP"],
+ ["LRCX","Lam Research"],["PANW","Palo Alto Networks"],["ADI","Analog Devices"],["KLAC","KLA"],["CRWD","CrowdStrike"],["MELI","MercadoLibre"],
+ ["INTC","Intel"],["SBUX","Starbucks"],["CEG","Constellation Energy"],["VRTX","Vertex"],["MSTR","Strategy"],["ABNB","Airbnb"],["DASH","DoorDash"],
+ ["CDNS","Cadence"],["CTAS","Cintas"],["ORLY","O'Reilly"],["SNPS","Synopsys"],["FTNT","Fortinet"],["MAR","Marriott"],["MDLZ","Mondelez"],
+ ["ADSK","Autodesk"],["REGN","Regeneron"],["PYPL","PayPal"],["CSX","CSX"],["ROP","Roper"],["AXON","Axon"],["MNST","Monster Beverage"],
+ ["WDAY","Workday"],["AEP","American Electric Power"],["CHTR","Charter"],["PCAR","PACCAR"],["NXPI","NXP"],["FAST","Fastenal"],["TRI","Thomson Reuters"],
+ ["PAYX","Paychex"],["IDXX","IDEXX"],["ZS","Zscaler"],["KDP","Keurig Dr Pepper"],["ROST","Ross Stores"],["CPRT","Copart"],["DDOG","Datadog"],
+ ["EXC","Exelon"],["FANG","Diamondback"],["BKR","Baker Hughes"],["TTWO","Take-Two"],["XEL","Xcel Energy"],["CCEP","Coca-Cola Europacific"],
+ ["EA","Electronic Arts"],["VRSK","Verisk"],["MCHP","Microchip"],["KHC","Kraft Heinz"],["GEHC","GE HealthCare"],["ODFL","Old Dominion"],
+ ["CSGP","CoStar"],["CTSH","Cognizant"],["LULU","Lululemon"],["TEAM","Atlassian"],["DXCM","Dexcom"],["WBD","Warner Bros. Discovery"],
+ ["CDW","CDW"],["ON","ON Semiconductor"],["BIIB","Biogen"],["GFS","GlobalFoundries"],["TTD","The Trade Desk"],["ARM","Arm Holdings"],["MRVL","Marvell"]
+];
+/* Самые торгуемые бумаги Nasdaq по числу акций — типичный состав (Finnhub бесплатно не отдаёт объём) */
+const US_ACTIVE = [["NVDA","NVIDIA"],["TSLA","Tesla"],["INTC","Intel"],["AAPL","Apple"],["PLTR","Palantir"],["AMD","AMD"],["SOFI","SoFi"],["AMZN","Amazon"],["MSFT","Microsoft"],["GOOGL","Alphabet A"]];
+const US_ETF = [["QQQ","Invesco QQQ (Nasdaq-100)"],["TQQQ","ProShares 3x Nasdaq-100"],["SQQQ","ProShares −3x Nasdaq-100"],["SPY","SPDR S&P 500"]];
+
+const MOEX_INDEX = [["IMOEX","Индекс МосБиржи"],["RTSI","Индекс РТС"],["MOEXBC","Голубые фишки"],["MOEXOG","Нефть и газ"],["MOEXFN","Финансы"],["RGBI","Гособлигации"]];
+const FUTURES = [
+ ["NASD","Nasdaq-100 (MOEX)"],["SPYF","S&P 500 (MOEX)"],["MIX","Индекс МосБиржи"],["RTS","Индекс РТС"],["IMOEXF","Индекс МосБиржи (вечный)"],
+ ["Si","Доллар/рубль"],["CNY","Юань/рубль"],["Eu","Евро/рубль"],["USDRUBF","Доллар/рубль (вечный)"],["CNYRUBF","Юань/рубль (вечный)"],["ED","Евро/доллар"],
+ ["BR","Нефть Brent"],["NG","Природный газ"],["GOLD","Золото"],["SILV","Серебро"],["SBRF","Сбербанк"],["GAZR","Газпром"]
+];
+const FX_MOEX = [["CNYRUB_TOM","Юань/рубль, МосБиржа"],["HKDRUB_TOM","Гонконгский доллар/рубль"],["KZTRUB_TOM","Тенге/рубль"],["BYNRUB_TOM","Белорусский рубль/рубль"],["TRYRUB_TOM","Лира/рубль"],["GLDRUB_TOM","Золото, руб/г"],["SLVRUB_TOM","Серебро, руб/г"]];
+const FX_CBR = [["USD","Доллар/рубль, курс ЦБ"],["EUR","Евро/рубль, курс ЦБ"],["CNY","Юань/рубль, курс ЦБ"],["GBP","Фунт/рубль, курс ЦБ"],["TRY","Лира/рубль, курс ЦБ"],["KZT","Тенге/рубль, курс ЦБ"]];
+const FX_WORLD = [["EURUSD","Евро/доллар"],["GBPUSD","Фунт/доллар"],["USDJPY","Доллар/иена"],["USDCHF","Доллар/франк"],["AUDUSD","Австр. доллар/доллар"],["USDCAD","Доллар/кан. доллар"],["USDCNY","Доллар/юань"]];
+
+/* id = "источник:код" */
+const SRC_LABEL = {us:"NASDAQ", moex:"MOEX", idx:"MOEX", fut:"FORTS", cets:"MOEX FX", cbr:"ЦБ РФ", ecb:"FOREX"};
+const DEFAULT_PF = ["idx:IMOEX","us:QQQ","fut:NASD","moex:SBER","moex:LKOH","moex:GAZP","us:NVDA","us:AAPL","us:MSFT","us:TSLA","fut:Si","fut:BR","cbr:USD","cets:CNYRUB_TOM","ecb:EURUSD"];
+
+/* ======================= Состояние ======================= */
+const store = {
+  get(k,d){try{const v=localStorage.getItem("inf_"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem("inf_"+k,JSON.stringify(v))}catch(e){}}
+};
+const S = {
+  tab:"portfolio", filter:"all", cat:"ndx", q:"", edit:false,
+  pf: store.get("pf", DEFAULT_PF),
+  key: store.get("finnhub",""),
+  every: store.get("every",60),
+  quotes: {},   // id -> {p, ch, t, name}
+  moexShares: [], // для топ-10
+  futMap: {},   // ASSETCODE -> SECID ближайшего контракта
+  errors: {},
+  updated: null, loading:false,
+  demo: /[?&#]demo/.test(location.href)
+};
+const NAME = {};
+NDX100.concat(US_ACTIVE,US_ETF).forEach(([s,n])=>NAME["us:"+s]=n);
+MOEX_INDEX.forEach(([s,n])=>NAME["idx:"+s]=n);
+FUTURES.forEach(([s,n])=>NAME["fut:"+s]=n);
+FX_MOEX.forEach(([s,n])=>NAME["cets:"+s]=n);
+FX_CBR.forEach(([s,n])=>NAME["cbr:"+s]=n);
+FX_WORLD.forEach(([s,n])=>NAME["ecb:"+s]=n);
+
+const savePf = ()=>store.set("pf",S.pf);
+const src = id=>id.split(":")[0];
+const code = id=>id.slice(id.indexOf(":")+1);
+const isUS = id=>src(id)==="us";
+function label(id){
+  const s=src(id), c=code(id);
+  if(s==="cets") return c.replace("_TOM","").replace(/^(...)(...)$/,"$1/$2");
+  if(s==="cbr") return c+"/RUB";
+  if(s==="ecb") return c.slice(0,3)+"/"+c.slice(3);
+  if(s==="fut") return S.futMap[c]||c;
+  return c;
+}
+
+/* ======================= Загрузка данных ======================= */
+const ISS = "https://iss.moex.com/iss";
+async function getJSON(url,ms=15000){
+  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),ms);
+  try{ const r=await fetch(url,{signal:ctl.signal,cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return await r.json(); }
+  finally{ clearTimeout(t); }
+}
+const rows = b => b ? b.data.map(r=>Object.fromEntries(b.columns.map((c,i)=>[c,r[i]]))) : [];
+const pct = (p,prev)=> (p!=null && prev) ? (p/prev-1)*100 : null;
+const num = v => (v==null||v===""||Number.isNaN(+v)) ? null : +v;
+
+async function loadMoexShares(){
+  const j = await getJSON(ISS+"/engines/stock/markets/shares/boards/TQBR/securities.json?iss.meta=off&iss.only=securities,marketdata"+
+    "&securities.columns=SECID,SHORTNAME,PREVPRICE&marketdata.columns=SECID,LAST,LCURRENTPRICE,VALTODAY,UPDATETIME");
+  const sec = rows(j.securities), md = Object.fromEntries(rows(j.marketdata).map(r=>[r.SECID,r]));
+  S.moexShares = sec.map(s=>{
+    const m = md[s.SECID]||{}; const p = num(m.LAST) ?? num(m.LCURRENTPRICE) ?? num(s.PREVPRICE);
+    const q = {p, ch:pct(p,num(s.PREVPRICE)), t:m.UPDATETIME, name:s.SHORTNAME, val:num(m.VALTODAY)||0};
+    S.quotes["moex:"+s.SECID]=q; NAME["moex:"+s.SECID]=s.SHORTNAME; return {id:"moex:"+s.SECID, ...q};
+  });
+}
+async function loadIndexes(){
+  const ids = MOEX_INDEX.map(x=>x[0]).join(",");
+  const j = await getJSON(ISS+"/engines/stock/markets/index/boards/SNDX/securities.json?iss.meta=off&iss.only=securities,marketdata&securities="+ids);
+  const sec = Object.fromEntries(rows(j.securities).map(r=>[r.SECID,r]));
+  rows(j.marketdata).forEach(m=>{
+    const prev = num(m.LASTVALUE) ?? num(sec[m.SECID]?.PREVPRICE);
+    const p = num(m.CURRENTVALUE) ?? num(m.LASTVALUE);
+    S.quotes["idx:"+m.SECID] = {p, ch: num(m.LASTCHANGEPRC) ?? pct(p,prev), t:m.UPDATETIME||m.TIME};
+  });
+}
+async function loadFutures(){
+  const j = await getJSON(ISS+"/engines/futures/markets/forts/securities.json?iss.meta=off&iss.only=securities,marketdata");
+  const md = Object.fromEntries(rows(j.marketdata).map(r=>[r.SECID,r]));
+  const today = new Date().toISOString().slice(0,10);
+  const best = {};
+  rows(j.securities).forEach(s=>{
+    const keyA = FUTURES.find(([a])=>a===s.ASSETCODE || a===s.SECID); if(!keyA) return;
+    const a = keyA[0];
+    if(s.LASTTRADEDATE && s.LASTTRADEDATE < today) return;
+    const cur = best[a];
+    // вечные фьючерсы матчим по SECID, срочные — ближайший по дате экспирации
+    if(a===s.SECID){ best[a]=s; return; }
+    if(cur && cur.SECID===a) return;
+    if(!cur || (s.LASTTRADEDATE||"9") < (cur.LASTTRADEDATE||"9")) best[a]=s;
+  });
+  Object.entries(best).forEach(([a,s])=>{
+    const m = md[s.SECID]||{};
+    const prev = num(s.PREVSETTLEPRICE) ?? num(s.PREVPRICE);
+    const p = num(m.LAST) ?? num(m.SETTLEPRICE) ?? prev;
+    S.futMap[a]=s.SECID;
+    S.quotes["fut:"+a] = {p, ch:pct(p,prev), t:m.UPDATETIME, contract:s.SECID, exp:s.LASTTRADEDATE};
+  });
+}
+async function loadCets(){
+  const ids = FX_MOEX.map(x=>x[0]).join(",");
+  const j = await getJSON(ISS+"/engines/currency/markets/selt/boards/CETS/securities.json?iss.meta=off&iss.only=securities,marketdata&securities="+ids);
+  const sec = Object.fromEntries(rows(j.securities).map(r=>[r.SECID,r]));
+  rows(j.marketdata).forEach(m=>{
+    const prev = num(sec[m.SECID]?.PREVPRICE) ?? num(sec[m.SECID]?.PREVWAPRICE);
+    const p = num(m.LAST) ?? num(m.WAPRICE) ?? prev;
+    S.quotes["cets:"+m.SECID] = {p, ch:pct(p,prev), t:m.UPDATETIME};
+  });
+}
+async function loadCbr(){
+  const j = await getJSON("https://www.cbr-xml-daily.ru/daily_json.js");
+  const d = (j.Date||"").slice(0,10).split("-").reverse().join(".");
+  FX_CBR.forEach(([c])=>{ const v=j.Valute?.[c]; if(!v) return;
+    const p=v.Value/v.Nominal, prev=v.Previous/v.Nominal;
+    S.quotes["cbr:"+c]={p, ch:pct(p,prev), t:d};
+  });
+}
+async function loadWorldFx(){
+  const start = new Date(Date.now()-8*864e5).toISOString().slice(0,10);
+  let j;
+  try{ j = await getJSON("https://api.frankfurter.dev/v1/"+start+"..?base=USD"); }
+  catch(e){ j = await getJSON("https://api.frankfurter.app/"+start+"..?from=USD"); }
+  const dates = Object.keys(j.rates).sort(); const last=j.rates[dates.at(-1)], prev=j.rates[dates.at(-2)]||last;
+  const val = (r,c)=> c.startsWith("USD") ? r[c.slice(3)] : 1/r[c.slice(0,3)];
+  FX_WORLD.forEach(([c])=>{ const p=val(last,c), pp=val(prev,c); if(!p) return;
+    S.quotes["ecb:"+c]={p, ch:pct(p,pp), t:dates.at(-1).split("-").reverse().slice(0,2).join(".")};
+  });
+}
+async function loadUS(ids){
+  if(!S.key){ S.errors.us = "Для бумаг Nasdaq добавьте бесплатный ключ Finnhub в Настройках"; return; }
+  const list=[...new Set(ids)]; let i=0, fails=0;
+  async function worker(){
+    while(i<list.length){ const id=list[i++];
+      try{
+        const q = await getJSON("https://finnhub.io/api/v1/quote?symbol="+encodeURIComponent(code(id))+"&token="+encodeURIComponent(S.key));
+        if(!q || !q.c){ fails++; continue; }
+        const dt = new Date(q.t*1000);
+        S.quotes[id]={p:q.c, ch:q.dp ?? pct(q.c,q.pc), t:dt.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})};
+      }catch(e){ fails++; }
+    }
+  }
+  await Promise.all([worker(),worker(),worker()]);
+  if(fails) S.errors.us = "Finnhub: не получено "+fails+" из "+list.length+" котировок (проверьте ключ или лимит 60 запросов/мин)";
+}
+
+async function refresh(){
+  if(S.loading) return; S.loading=true; S.errors={};
+  document.getElementById("refreshBtn").classList.add("spin");
+  if(S.demo){ fillDemo(); }
+  else{
+    const need = new Set(S.pf.map(src));
+    if(S.tab==="catalog"){ ({ndx:["us"],top:["moex","us"],fut:["fut"],fx:["cets","cbr","ecb"],idx:["idx"]})[S.cat].forEach(x=>need.add(x)); }
+    const usIds = S.pf.filter(isUS);
+    if(S.tab==="catalog" && S.cat==="top") US_ACTIVE.forEach(([s])=>usIds.push("us:"+s));
+    const jobs = [];
+    const run = (k,fn)=>jobs.push(fn().catch(e=>{S.errors[k]=(SRC_LABEL[k]||k)+": нет данных ("+(e.name==="AbortError"?"таймаут":e.message||"сеть")+")";}));
+    if(need.has("moex")) run("moex",loadMoexShares);
+    if(need.has("idx")) run("idx",loadIndexes);
+    if(need.has("fut")) run("fut",loadFutures);
+    if(need.has("cets")) run("cets",loadCets);
+    if(need.has("cbr")) run("cbr",loadCbr);
+    if(need.has("ecb")) run("ecb",loadWorldFx);
+    if(usIds.length) run("us",()=>loadUS(usIds));
+    await Promise.all(jobs);
+  }
+  S.updated=new Date(); S.loading=false;
+  document.getElementById("refreshBtn").classList.remove("spin");
+  render();
+}
+
+/* Демо-режим (?demo): примерные цифры, только чтобы посмотреть интерфейс */
+function fillDemo(){
+  const seed = s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
+  const base = {"idx:IMOEX":2780,"idx:RTSI":1050,"us:QQQ":610,"fut:NASD":24800,"fut:Si":82500,"fut:BR":66.4,"cbr:USD":81.2,"cets:CNYRUB_TOM":11.35,"ecb:EURUSD":1.16};
+  const all = new Set([...S.pf, ...NDX100.map(x=>"us:"+x[0]), ...US_ACTIVE.map(x=>"us:"+x[0]), ...FUTURES.map(x=>"fut:"+x[0]),
+    ...FX_MOEX.map(x=>"cets:"+x[0]), ...FX_CBR.map(x=>"cbr:"+x[0]), ...FX_WORLD.map(x=>"ecb:"+x[0]), ...MOEX_INDEX.map(x=>"idx:"+x[0])]);
+  const shares=[["SBER","Сбербанк"],["GAZP","ГАЗПРОМ ао"],["LKOH","ЛУКОЙЛ"],["YDEX","Яндекс"],["VTBR","ВТБ ао"],["ROSN","Роснефть"],["GMKN","ГМКНорНик"],["T","Т-Технологии"],["NVTK","Новатэк ао"],["PLZL","Полюс"],["MGNT","Магнит ао"],["AFLT","Аэрофлот"]];
+  S.moexShares = shares.map(([s,n],i)=>{const id="moex:"+s; NAME[id]=n; all.delete(id);
+    const q={p:50+seed(s)%5000, ch:((seed(s)%700)-350)/100, t:"18:39:58", val:(12-i)*1.7e9}; S.quotes[id]=q; return {id,...q};});
+  all.forEach(id=>{ if(id.startsWith("moex:")) return; const s=seed(id);
+    S.quotes[id]={p: base[id] ?? (20+s%900), ch:((s%600)-300)/100, t:"18:40"}; if(id.startsWith("fut:")) S.futMap[code(id)]=code(id)+"-12.26"; });
+}
+
+/* ======================= Отрисовка ======================= */
+const $main = document.getElementById("main"), $sub = document.getElementById("subnav");
+const esc = s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function fmtP(p){
+  if(p==null) return "—";
+  const d = p>=10000?0 : p>=100?2 : p>=1?(p<10?4:3) : 5;
+  return p.toLocaleString("ru-RU",{minimumFractionDigits:Math.min(d,2),maximumFractionDigits:d});
+}
+function fmtCh(c){ if(c==null||!isFinite(c)) return "—"; return (c>0?"+":c<0?"−":"")+Math.abs(c).toFixed(2).replace(".",",")+"%"; }
+function fmtVal(v){ if(!v) return ""; return v>=1e9 ? (v/1e9).toFixed(1).replace(".",",")+" млрд ₽" : (v/1e6).toFixed(0)+" млн ₽"; }
+
+function rowHTML(id, mode, extra){
+  const q = S.quotes[id]||{}; const s=src(id);
+  const cls = q.ch>0?"up":q.ch<0?"down":"";
+  const name = NAME[id]||q.name||"";
+  const sub = extra || (s==="fut" && q.exp ? name+" · до "+q.exp.split("-").reverse().join(".") : name);
+  let right;
+  if(mode==="pf" && S.edit){
+    right = `<div class="edit-ctl"><button data-up="${esc(id)}" aria-label="Выше">↑</button><button data-down="${esc(id)}" aria-label="Ниже">↓</button><button class="del" data-del="${esc(id)}" aria-label="Удалить">✕</button></div>`;
+  } else if(mode==="cat"){
+    const on = S.pf.includes(id);
+    right = `<div class="chg ${cls}">${fmtCh(q.ch)}</div><button class="add ${on?"on":""}" data-toggle="${esc(id)}" aria-label="${on?"Убрать из портфеля":"Добавить в портфель"}">${on?"✓":"+"}</button>`;
+  } else right = `<div class="chg ${cls}">${fmtCh(q.ch)}</div>`;
+  return `<div class="row">
+    <div class="ident"><div class="tick">${esc(label(id))}<span class="badge ${s==="us"?"us":""}">${SRC_LABEL[s]}</span></div><div class="name">${esc(sub)}</div></div>
+    <div class="px"><div class="p">${fmtP(q.p)}</div><div class="t">${esc(String(q.t||"").replace(/^(\d\d:\d\d):\d\d$/,"$1"))}</div></div>${right}</div>`;
+}
+function errorsHTML(){
+  const e = Object.values(S.errors); return e.length ? `<div class="errors">${e.map(esc).join("<br>")}</div>` : "";
+}
+
+function renderPortfolio(){
+  $sub.innerHTML = `<div class="seg" role="group" aria-label="Биржа">
+    ${[["all","Все"],["moex","Мосбиржа"],["us","Nasdaq"],["fx","Валюты"]].map(([k,t])=>`<button data-filter="${k}" aria-pressed="${S.filter===k}">${t}</button>`).join("")}</div>`;
+  const f = S.filter;
+  const ids = S.pf.filter(id=>{const s=src(id);
+    return f==="all" || (f==="us"&&s==="us") || (f==="moex"&&["moex","idx","fut"].includes(s)) || (f==="fx"&&["cets","cbr","ecb"].includes(s)) ; });
+  if(!S.pf.length){ $main.innerHTML = `<div class="group"><div class="list"><div class="empty">Портфель пуст.<br><button class="btn" data-goto="catalog">Выбрать инструменты</button></div></div></div>`; return; }
+  $main.innerHTML = `${errorsHTML()}
+    <div class="group"><h2><span>${ids.length} инструм.</span><button class="txtbtn" id="editBtn">${S.edit?"Готово":"Изменить"}</button></h2>
+    <div class="list">${ids.map(id=>rowHTML(id,"pf")).join("") || `<div class="empty">В этом фильтре пусто</div>`}</div></div>
+    <p class="notice">Мосбиржа — данные ISS с задержкой ~15 мин; Nasdaq — Finnhub; курсы ЦБ и ECB — раз в день.${S.demo?' <span class="demo-flag">ДЕМО-ЦИФРЫ</span>':''}</p>`;
+}
+
+function renderCatalog(){
+  $sub.innerHTML = `<div class="seg" role="group" aria-label="Раздел каталога">
+    ${[["ndx","Nasdaq-100"],["top","Топ-10 объём"],["fut","Фьючерсы"],["fx","Валюты"],["idx","Индексы"]].map(([k,t])=>`<button data-cat="${k}" aria-pressed="${S.cat===k}">${t}</button>`).join("")}</div>`;
+  const q = S.q.trim().toLowerCase();
+  const match = id => !q || code(id).toLowerCase().includes(q) || (NAME[id]||"").toLowerCase().includes(q);
+  const grp = (title, ids, extraFn) => { ids = ids.filter(match); return ids.length ? `<div class="group"><h2><span>${title}</span><span>${ids.length}</span></h2><div class="list">${ids.map(id=>rowHTML(id,"cat",extraFn&&extraFn(id))).join("")}</div></div>` : ""; };
+  let html = `<input class="search" id="search" type="search" placeholder="Поиск: тикер или название" value="${esc(S.q)}" autocomplete="off">` + errorsHTML();
+  if(S.cat==="ndx"){
+    html += grp("Индекс Nasdaq-100 (через ETF)", US_ETF.map(x=>"us:"+x[0]));
+    html += grp("Состав Nasdaq-100", NDX100.map(x=>"us:"+x[0]));
+    html += `<p class="notice">Цены Nasdaq в каталоге не грузятся, чтобы не тратить лимит Finnhub — они появятся в портфеле. Сам индекс NDX бесплатно недоступен, его заменяют QQQ и фьючерс NASD на Мосбирже.</p>`;
+  } else if(S.cat==="top"){
+    const top = [...S.moexShares].sort((a,b)=>b.val-a.val).slice(0,10);
+    html += top.length ? grp("Мосбиржа · оборот за сегодня", top.map(x=>x.id), id=>(NAME[id]||"")+" · "+fmtVal(S.quotes[id].val))
+                       : `<div class="group"><div class="list"><div class="empty">${S.loading?"Загрузка оборотов Мосбиржи…":"Нет данных Мосбиржи"}</div></div></div>`;
+    html += grp("Nasdaq · самые торгуемые", US_ACTIVE.map(x=>"us:"+x[0]));
+    html += `<p class="notice">Топ Мосбиржи считается вживую по обороту в рублях (режим TQBR). Для Nasdaq показан типичный список лидеров по объёму: бесплатный Finnhub не отдаёт объём торгов.</p>`;
+  } else if(S.cat==="fut"){
+    html += grp("Индексы", ["NASD","SPYF","MIX","RTS","IMOEXF"].map(a=>"fut:"+a));
+    html += grp("Валюты", ["Si","CNY","Eu","USDRUBF","CNYRUBF","ED"].map(a=>"fut:"+a));
+    html += grp("Товары", ["BR","NG","GOLD","SILV"].map(a=>"fut:"+a));
+    html += grp("Акции", ["SBRF","GAZR"].map(a=>"fut:"+a));
+    html += `<p class="notice">Срочный рынок FORTS. Берётся ближайший контракт, код подставляется автоматически (например, Si-12.26).</p>`;
+  } else if(S.cat==="fx"){
+    html += grp("Мировые пары · ECB", FX_WORLD.map(x=>"ecb:"+x[0]));
+    html += grp("Курсы ЦБ РФ", FX_CBR.map(x=>"cbr:"+x[0]));
+    html += grp("Валютный рынок Мосбиржи", FX_MOEX.map(x=>"cets:"+x[0]));
+    html += `<p class="notice">Биржевые торги долларом и евро на Мосбирже остановлены с июня 2024 — для USD/RUB и EUR/RUB смотрите курс ЦБ или фьючерсы Si и Eu.</p>`;
+  } else if(S.cat==="idx"){
+    html += grp("Индексы Мосбиржи", MOEX_INDEX.map(x=>"idx:"+x[0]));
+    html += grp("Nasdaq-100", ["us:QQQ","fut:NASD"]);
+  }
+  $main.innerHTML = html || `<div class="empty">Ничего не найдено</div>`;
+  const s = document.getElementById("search");
+  s.addEventListener("input",()=>{ S.q=s.value; const pos=s.selectionStart; renderCatalog(); const n=document.getElementById("search"); n.focus(); try{n.setSelectionRange(pos,pos)}catch(e){} });
+}
+
+function renderSettings(){
+  $sub.innerHTML = "";
+  $main.innerHTML = `
+  <div class="panel">
+    <h3>Ключ Finnhub для Nasdaq</h3>
+    <p>Котировки американских акций идут через Finnhub. Ключ бесплатный: зарегистрируйтесь на finnhub.io, скопируйте API key из личного кабинета и вставьте сюда. Ключ хранится только в этом браузере.</p>
+    <label for="key">API key<input id="key" value="${esc(S.key)}" placeholder="например, cq1abc…" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <div class="btnrow"><button class="btn" id="saveKey">Сохранить ключ</button></div>
+  </div>
+  <div class="panel">
+    <h3>Автообновление</h3>
+    <label for="every">Интервал<select id="every">
+      ${[[0,"Выключено"],[30,"30 секунд"],[60,"1 минута"],[300,"5 минут"]].map(([v,t])=>`<option value="${v}" ${S.every==v?"selected":""}>${t}</option>`).join("")}
+    </select></label>
+  </div>
+  <div class="panel">
+    <h3>На экран «Домой» iPhone</h3>
+    <ol class="steps"><li>Откройте страницу в Safari.</li><li>Нажмите «Поделиться» (квадрат со стрелкой).</li><li>Выберите «На экран Домой» → «Добавить».</li></ol>
+    <p>Информер запустится как отдельное приложение, портфель сохранится.</p>
+  </div>
+  <div class="panel">
+    <h3>Портфель</h3>
+    <div class="btnrow"><button class="btn ghost" id="resetPf">Вернуть набор по умолчанию</button><button class="btn ghost" id="clearPf">Очистить</button></div>
+    <p id="pfMsg"></p>
+  </div>`;
+  document.getElementById("saveKey").onclick=()=>{ S.key=document.getElementById("key").value.trim(); store.set("finnhub",S.key); toast("Ключ сохранён"); refresh(); };
+  document.getElementById("every").onchange=e=>{ S.every=+e.target.value; store.set("every",S.every); schedule(); };
+  document.getElementById("resetPf").onclick=()=>{ S.pf=[...DEFAULT_PF]; savePf(); toast("Набор по умолчанию восстановлен"); };
+  document.getElementById("clearPf").onclick=()=>{ S.pf=[]; savePf(); toast("Портфель очищен"); };
+}
+function toast(t){ const m=document.getElementById("pfMsg"); if(m) m.textContent=t; else document.getElementById("stamp").textContent=t; }
+
+function render(){
+  document.getElementById("title").textContent = {portfolio:"Портфель",catalog:"Каталог",settings:"Настройки"}[S.tab];
+  document.querySelectorAll("nav.tabs button").forEach(b=>{ if(b.dataset.tab===S.tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  document.getElementById("stamp").innerHTML = S.loading ? "Обновление…" : S.updated ? "Обновлено<br>"+S.updated.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit",second:"2-digit"}) : "—";
+  ({portfolio:renderPortfolio,catalog:renderCatalog,settings:renderSettings})[S.tab]();
+}
+
+/* ======================= События ======================= */
+document.addEventListener("click",e=>{
+  const b = e.target.closest("button"); if(!b) return; const d=b.dataset;
+  if(d.tab){ S.tab=d.tab; S.edit=false; window.scrollTo(0,0); render(); if(d.tab!=="settings") refresh(); return; }
+  if(d.goto){ S.tab=d.goto; render(); refresh(); return; }
+  if(d.filter){ S.filter=d.filter; render(); return; }
+  if(d.cat){ S.cat=d.cat; render(); refresh(); return; }
+  if(d.toggle){ const i=S.pf.indexOf(d.toggle); i>=0?S.pf.splice(i,1):S.pf.push(d.toggle); savePf(); render();
+    if(i<0 && !S.quotes[d.toggle]) refresh(); return; }
+  if(d.del){ S.pf=S.pf.filter(x=>x!==d.del); savePf(); render(); return; }
+  if(d.up||d.down){ const id=d.up||d.down, i=S.pf.indexOf(id), j=d.up?i-1:i+1; if(j<0||j>=S.pf.length) return;
+    [S.pf[i],S.pf[j]]=[S.pf[j],S.pf[i]]; savePf(); render(); return; }
+  if(b.id==="editBtn"){ S.edit=!S.edit; render(); return; }
+  if(b.id==="refreshBtn"){ refresh(); return; }
+});
+let timer=null;
+function schedule(){ clearInterval(timer); if(S.every>0) timer=setInterval(()=>{ if(!document.hidden && S.tab!=="settings") refresh(); }, S.every*1000); }
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && S.updated && Date.now()-S.updated>20000) refresh(); });
+
+/* Иконка для экрана «Домой» (iOS требует PNG) */
+(function(){ try{
+  const c=document.createElement("canvas"); c.width=c.height=180; const x=c.getContext("2d");
+  x.fillStyle="#0f1720"; x.fillRect(0,0,180,180);
+  x.strokeStyle="#f2b84b"; x.lineWidth=12; x.lineCap="round"; x.lineJoin="round";
+  x.beginPath(); x.moveTo(30,124); x.lineTo(70,84); x.lineTo(100,108); x.lineTo(150,52); x.stroke();
+  x.fillStyle="#2fbf71"; x.beginPath(); x.arc(150,52,12,0,7); x.fill();
+  document.getElementById("touchIcon").href=c.toDataURL("image/png");
+}catch(e){} })();
+
+render(); refresh(); schedule();
+</script>
+</body>
+</html>
