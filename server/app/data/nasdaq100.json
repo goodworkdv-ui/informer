@@ -1,0 +1,410 @@
+{
+ "updated": "2025-12",
+ "note": "Состав Nasdaq-100. Обновляйте вручную не реже раза в полгода (I-22).",
+ "items": [
+  {
+   "ticker": "AAPL",
+   "name": "Apple"
+  },
+  {
+   "ticker": "MSFT",
+   "name": "Microsoft"
+  },
+  {
+   "ticker": "NVDA",
+   "name": "NVIDIA"
+  },
+  {
+   "ticker": "AMZN",
+   "name": "Amazon"
+  },
+  {
+   "ticker": "META",
+   "name": "Meta Platforms"
+  },
+  {
+   "ticker": "GOOGL",
+   "name": "Alphabet A"
+  },
+  {
+   "ticker": "GOOG",
+   "name": "Alphabet C"
+  },
+  {
+   "ticker": "AVGO",
+   "name": "Broadcom"
+  },
+  {
+   "ticker": "TSLA",
+   "name": "Tesla"
+  },
+  {
+   "ticker": "COST",
+   "name": "Costco"
+  },
+  {
+   "ticker": "NFLX",
+   "name": "Netflix"
+  },
+  {
+   "ticker": "PLTR",
+   "name": "Palantir"
+  },
+  {
+   "ticker": "ASML",
+   "name": "ASML"
+  },
+  {
+   "ticker": "TMUS",
+   "name": "T-Mobile US"
+  },
+  {
+   "ticker": "CSCO",
+   "name": "Cisco"
+  },
+  {
+   "ticker": "AMD",
+   "name": "AMD"
+  },
+  {
+   "ticker": "AZN",
+   "name": "AstraZeneca"
+  },
+  {
+   "ticker": "LIN",
+   "name": "Linde"
+  },
+  {
+   "ticker": "ISRG",
+   "name": "Intuitive Surgical"
+  },
+  {
+   "ticker": "INTU",
+   "name": "Intuit"
+  },
+  {
+   "ticker": "PEP",
+   "name": "PepsiCo"
+  },
+  {
+   "ticker": "SHOP",
+   "name": "Shopify"
+  },
+  {
+   "ticker": "TXN",
+   "name": "Texas Instruments"
+  },
+  {
+   "ticker": "BKNG",
+   "name": "Booking"
+  },
+  {
+   "ticker": "QCOM",
+   "name": "Qualcomm"
+  },
+  {
+   "ticker": "AMGN",
+   "name": "Amgen"
+  },
+  {
+   "ticker": "ADBE",
+   "name": "Adobe"
+  },
+  {
+   "ticker": "AMAT",
+   "name": "Applied Materials"
+  },
+  {
+   "ticker": "GILD",
+   "name": "Gilead"
+  },
+  {
+   "ticker": "HON",
+   "name": "Honeywell"
+  },
+  {
+   "ticker": "PDD",
+   "name": "PDD Holdings"
+  },
+  {
+   "ticker": "CMCSA",
+   "name": "Comcast"
+  },
+  {
+   "ticker": "MU",
+   "name": "Micron"
+  },
+  {
+   "ticker": "APP",
+   "name": "AppLovin"
+  },
+  {
+   "ticker": "ADP",
+   "name": "ADP"
+  },
+  {
+   "ticker": "LRCX",
+   "name": "Lam Research"
+  },
+  {
+   "ticker": "PANW",
+   "name": "Palo Alto Networks"
+  },
+  {
+   "ticker": "ADI",
+   "name": "Analog Devices"
+  },
+  {
+   "ticker": "KLAC",
+   "name": "KLA"
+  },
+  {
+   "ticker": "CRWD",
+   "name": "CrowdStrike"
+  },
+  {
+   "ticker": "MELI",
+   "name": "MercadoLibre"
+  },
+  {
+   "ticker": "INTC",
+   "name": "Intel"
+  },
+  {
+   "ticker": "SBUX",
+   "name": "Starbucks"
+  },
+  {
+   "ticker": "CEG",
+   "name": "Constellation Energy"
+  },
+  {
+   "ticker": "VRTX",
+   "name": "Vertex"
+  },
+  {
+   "ticker": "MSTR",
+   "name": "Strategy"
+  },
+  {
+   "ticker": "ABNB",
+   "name": "Airbnb"
+  },
+  {
+   "ticker": "DASH",
+   "name": "DoorDash"
+  },
+  {
+   "ticker": "CDNS",
+   "name": "Cadence"
+  },
+  {
+   "ticker": "CTAS",
+   "name": "Cintas"
+  },
+  {
+   "ticker": "ORLY",
+   "name": "O'Reilly"
+  },
+  {
+   "ticker": "SNPS",
+   "name": "Synopsys"
+  },
+  {
+   "ticker": "FTNT",
+   "name": "Fortinet"
+  },
+  {
+   "ticker": "MAR",
+   "name": "Marriott"
+  },
+  {
+   "ticker": "MDLZ",
+   "name": "Mondelez"
+  },
+  {
+   "ticker": "ADSK",
+   "name": "Autodesk"
+  },
+  {
+   "ticker": "REGN",
+   "name": "Regeneron"
+  },
+  {
+   "ticker": "PYPL",
+   "name": "PayPal"
+  },
+  {
+   "ticker": "CSX",
+   "name": "CSX"
+  },
+  {
+   "ticker": "ROP",
+   "name": "Roper"
+  },
+  {
+   "ticker": "AXON",
+   "name": "Axon"
+  },
+  {
+   "ticker": "MNST",
+   "name": "Monster Beverage"
+  },
+  {
+   "ticker": "WDAY",
+   "name": "Workday"
+  },
+  {
+   "ticker": "AEP",
+   "name": "American Electric Power"
+  },
+  {
+   "ticker": "CHTR",
+   "name": "Charter"
+  },
+  {
+   "ticker": "PCAR",
+   "name": "PACCAR"
+  },
+  {
+   "ticker": "NXPI",
+   "name": "NXP"
+  },
+  {
+   "ticker": "FAST",
+   "name": "Fastenal"
+  },
+  {
+   "ticker": "TRI",
+   "name": "Thomson Reuters"
+  },
+  {
+   "ticker": "PAYX",
+   "name": "Paychex"
+  },
+  {
+   "ticker": "IDXX",
+   "name": "IDEXX"
+  },
+  {
+   "ticker": "ZS",
+   "name": "Zscaler"
+  },
+  {
+   "ticker": "KDP",
+   "name": "Keurig Dr Pepper"
+  },
+  {
+   "ticker": "ROST",
+   "name": "Ross Stores"
+  },
+  {
+   "ticker": "CPRT",
+   "name": "Copart"
+  },
+  {
+   "ticker": "DDOG",
+   "name": "Datadog"
+  },
+  {
+   "ticker": "EXC",
+   "name": "Exelon"
+  },
+  {
+   "ticker": "FANG",
+   "name": "Diamondback"
+  },
+  {
+   "ticker": "BKR",
+   "name": "Baker Hughes"
+  },
+  {
+   "ticker": "TTWO",
+   "name": "Take-Two"
+  },
+  {
+   "ticker": "XEL",
+   "name": "Xcel Energy"
+  },
+  {
+   "ticker": "CCEP",
+   "name": "Coca-Cola Europacific"
+  },
+  {
+   "ticker": "EA",
+   "name": "Electronic Arts"
+  },
+  {
+   "ticker": "VRSK",
+   "name": "Verisk"
+  },
+  {
+   "ticker": "MCHP",
+   "name": "Microchip"
+  },
+  {
+   "ticker": "KHC",
+   "name": "Kraft Heinz"
+  },
+  {
+   "ticker": "GEHC",
+   "name": "GE HealthCare"
+  },
+  {
+   "ticker": "ODFL",
+   "name": "Old Dominion"
+  },
+  {
+   "ticker": "CSGP",
+   "name": "CoStar"
+  },
+  {
+   "ticker": "CTSH",
+   "name": "Cognizant"
+  },
+  {
+   "ticker": "LULU",
+   "name": "Lululemon"
+  },
+  {
+   "ticker": "TEAM",
+   "name": "Atlassian"
+  },
+  {
+   "ticker": "DXCM",
+   "name": "Dexcom"
+  },
+  {
+   "ticker": "WBD",
+   "name": "Warner Bros. Discovery"
+  },
+  {
+   "ticker": "CDW",
+   "name": "CDW"
+  },
+  {
+   "ticker": "ON",
+   "name": "ON Semiconductor"
+  },
+  {
+   "ticker": "BIIB",
+   "name": "Biogen"
+  },
+  {
+   "ticker": "GFS",
+   "name": "GlobalFoundries"
+  },
+  {
+   "ticker": "TTD",
+   "name": "The Trade Desk"
+  },
+  {
+   "ticker": "ARM",
+   "name": "Arm Holdings"
+  },
+  {
+   "ticker": "MRVL",
+   "name": "Marvell"
+  }
+ ]
+}
