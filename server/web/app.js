@@ -11,7 +11,7 @@ const store = {
 const S = { route: "portfolio", pid: store.get("pid", null), instId: null, tf: "1d", offline: null, busy: false,
             options: null, lastLoad: null };
 
-const CLASS_RU = { equity_us: "Акция США", equity_ru: "Акция", bond_ru: "Облигация", futures: "Фьючерс", currency: "Валюта" };
+const CLASS_RU = { equity_us: "США", equity_ru: "Акция", bond_ru: "Облигация", futures: "Фьючерс", currency: "Валюта" };
 const RATING_RU = { strong_buy: "Активно покупать", buy: "Покупать", neutral: "Нейтрально", sell: "Продавать", strong_sell: "Активно продавать", na: "н/д" };
 const SIG_RU = { buy: "Покупать", sell: "Продавать", neutral: "Нейтрально", na: "н/д" };
 
@@ -132,8 +132,8 @@ async function viewPortfolio() {
   main.innerHTML = `<div class="chips">${chips}</div>
     ${totals ? `<div class="totals">${totals}</div>` : ""}${imb}
     <div class="muted" style="font-size:12px;margin-top:8px">Котировки: ${esc(v.delay_label)}, обновление раз в 5 мин</div>
-    <div class="group"><h2><span>${v.positions.length} поз.</span>
-      <span class="btnrow"><button class="txtbtn" data-act="pfMenu">Портфель…</button><button class="txtbtn" data-act="addPos">+ Позиция</button></span></h2>
+    <div class="group"><h2><span>${v.positions.filter(p => !p.watch).length} поз.${v.positions.some(p => p.watch) ? ` · ${v.positions.filter(p => p.watch).length} в наблюдении` : ""}</span>
+      <span class="btnrow"><button class="txtbtn" data-act="pfMenu">Портфель…</button><button class="txtbtn" data-act="addPos">+ Бумага</button></span></h2>
       <div class="list">${rows || `<div class="empty">В портфеле нет позиций.<button class="btn" data-act="addPos">Добавить позицию</button></div>`}</div></div>`;
   setChrome(v.portfolio.name, false);
 }
@@ -151,6 +151,14 @@ function posRow(r) {
   else if (r.liquidity_warning) meta.push(`<span class="pill warn">экспирация ${dmy(r.expiry_date)}</span>`);
   if (r.age_min != null && r.age_min > 20) meta.push(`<span class="pill warn">данные ${Math.round(r.age_min)} мин назад</span>`);
   meta.push(`<button class="txtbtn" data-edit="${r.id}" style="margin-left:auto">Изменить</button>`);
+  if (r.watch) return `<div class="row">
+    <a class="tick" href="#inst-${r.instrument_id}" style="color:inherit;text-decoration:none;display:grid;gap:1px;min-width:0">
+      <span class="tick">${esc(r.code)} <span class="badge ${r.exchange === "NASDAQ" ? "us" : ""}">${r.exchange}</span>
+      <span class="pill" style="font-size:10.5px">наблюдение</span></span>
+      <span class="sub">${esc(r.name || "")}</span></a>
+    <div class="r"><div class="big">${fmtPrice(r.price)}${r.asset_class === "bond_ru" ? "%" : " " + cur(r.currency)}</div>
+      <div class="${cls(r.change_pct)}" style="font-size:13px">${signed(r.change_pct)}%</div></div>
+    <div class="meta">${meta.slice(1).join("")}</div></div>`;
   return `<div class="row">
     <a class="tick" href="#inst-${r.instrument_id}" style="color:inherit;text-decoration:none;display:grid;gap:1px;min-width:0">
       <span class="tick">${esc(r.code)} <span class="badge ${r.exchange === "NASDAQ" ? "us" : ""}">${r.exchange}</span>
@@ -369,15 +377,16 @@ function qtyLabel(c) {
 
 function sheetPosition(pos) {
   const edit = !!pos;
-  openSheet(`<h3>${edit ? "Позиция " + esc(pos.code) : "Новая позиция"}</h3>
+  openSheet(`<h3>${edit ? (pos.watch ? "Наблюдение " : "Позиция ") + esc(pos.code) : "Добавить бумагу"}</h3>
     ${edit ? `<div class="chosen">${esc(pos.name || "")} · ${CLASS_RU[pos.asset_class]}</div>` : searchField()}
     <div class="formgrid">
-      <label class="f" for="pq"><span id="pqL">${qtyLabel(pos?.asset_class)}</span><input class="i" id="pq" type="number" step="1" inputmode="numeric" value="${edit ? pos.quantity : ""}"></label>
-      <label class="f" for="pp"><span id="ppL">${priceLabel(pos?.asset_class)}</span><input class="i" id="pp" type="number" step="any" inputmode="decimal" value="${edit ? pos.avg_price : ""}"></label></div>
+      <label class="f" for="pq"><span id="pqL">${qtyLabel(pos?.asset_class)}</span><input class="i" id="pq" type="number" step="1" inputmode="numeric" value="${edit && !pos.watch ? pos.quantity : ""}" placeholder="пусто — наблюдение"></label>
+      <label class="f" for="pp"><span id="ppL">${priceLabel(pos?.asset_class)}</span><input class="i" id="pp" type="number" step="any" inputmode="decimal" value="${edit && !pos.watch ? pos.avg_price : ""}" placeholder="пусто — наблюдение"></label></div>
+    <p class="muted" style="margin:0;font-size:12.5px">Чтобы просто наблюдать за бумагой, оставьте количество и цену пустыми: будут видны цена, изменение и рекомендация, без стоимости и P&amp;L.</p>
     <label class="f" for="pd">Дата открытия (необязательно)<input class="i" id="pd" type="date" value="${edit && pos.opened_at ? esc(pos.opened_at) : ""}"></label>
     <div class="err" id="perr"></div>
     <div class="btnrow"><button class="btn" data-act="savePos" data-id="${edit ? pos.id : ""}">Сохранить</button>
-      ${edit ? `<button class="btn danger" data-act="delPos" data-id="${pos.id}">Удалить позицию</button>` : ""}
+      ${edit ? `<button class="btn danger" data-act="delPos" data-id="${pos.id}">Удалить</button>` : ""}
       <button class="btn ghost" data-act="close">Отмена</button></div>`);
   if (!edit) bindSearch(c => { $("#pqL").textContent = qtyLabel(c.asset_class); $("#ppL").textContent = priceLabel(c.asset_class); });
 }
@@ -463,14 +472,15 @@ document.addEventListener("click", async e => {
       case "addPos": sheetPosition(null); break;
       case "savePos": {
         $("#perr").textContent = "";
-        const body = { quantity: $("#pq").value, avg_price: $("#pp").value, opened_at: $("#pd").value || null };
-        if (!body.quantity || !body.avg_price) { $("#perr").textContent = "Заполните количество и среднюю цену входа"; break; }
+        const qv = $("#pq").value.trim(), pv = $("#pp").value.trim();
+        if (!!qv !== !!pv) { $("#perr").textContent = "Заполните и количество, и цену входа — или оставьте оба поля пустыми, чтобы просто наблюдать за бумагой"; break; }
+        const body = { quantity: qv === "" ? null : Number(qv), avg_price: pv === "" ? null : Number(pv), opened_at: $("#pd").value || null };
         b.disabled = true;
         try {
           if (d.id) await api("/api/positions/" + d.id, { method: "PATCH", body });
           else {
             if (!chosen) { $("#perr").textContent = "Выберите бумагу из списка"; break; }
-            await api("/api/positions", { method: "POST", body: { ...body, portfolio_id: S.pid, exchange: chosen.exchange, code: chosen.code } });
+            await api("/api/positions", { method: "POST", body: { ...body, portfolio_id: S.pid, exchange: chosen.exchange, code: chosen.code, name: chosen.name } });
           }
           closeSheet(); load();
         } catch (err) { $("#perr").textContent = err.message; } finally { b.disabled = false; }
@@ -485,7 +495,7 @@ document.addEventListener("click", async e => {
         try {
           if (!instId) {
             if (!chosen) { $("#aerr").textContent = "Выберите бумагу из списка"; break; }
-            instId = (await api("/api/instruments", { method: "POST", body: { exchange: chosen.exchange, code: chosen.code } })).id;
+            instId = (await api("/api/instruments", { method: "POST", body: { exchange: chosen.exchange, code: chosen.code, name: chosen.name } })).id;
           }
           const t = $("#aform").dataset.type;
           const num = id => $(id).value === "" ? null : Number($(id).value);

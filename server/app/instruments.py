@@ -17,6 +17,11 @@ async def search(q: str) -> list[dict]:
         return []
     res = us.search_local(q, 10)
     try:
+        known = {r["code"] for r in res}
+        res += [r for r in await us.search_online(q, 8) if r["code"] not in known]
+    except Exception as e:  # noqa: BLE001
+        db.log("error", "finnhub", f"Поиск «{q}»: {e}")
+    try:
         res += await moex.search(q, 25)
     except Exception as e:  # noqa: BLE001
         db.log("error", "moex", f"Поиск «{q}»: {e}")
@@ -36,12 +41,12 @@ def find_code(code: str) -> dict | None:
     return db.q1("SELECT * FROM instrument WHERE upper(code)=upper(?) ORDER BY exchange='NASDAQ' DESC", (code,))
 
 
-async def ensure(exchange: str, code: str) -> dict:
+async def ensure(exchange: str, code: str, name: str | None = None) -> dict:
     """Добавить инструмент в справочник (или вернуть существующий) и загрузить спецификацию."""
     inst = by_code(exchange, code)
     if inst:
         return inst
-    sp = us.spec(code) if exchange == "NASDAQ" else await moex.spec(code)
+    sp = us.spec(code, name) if exchange == "NASDAQ" else await moex.spec(code)
     db.x("INSERT INTO instrument(code,isin,name,asset_class,exchange,currency,engine,market,board) "
          "VALUES(?,?,?,?,?,?,?,?,?)",
          (sp["code"], sp["isin"], sp["name"], sp["asset_class"], sp["exchange"], sp["currency"],

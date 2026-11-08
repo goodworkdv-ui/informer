@@ -1,6 +1,6 @@
 {
  "updated": "2025-12",
- "note": "Состав Nasdaq-100. Обновляйте вручную не реже раза в полгода (I-22).",
+ "note": "Состав Nasdaq-100 (items) и фонды на индексы (etfs). Обновляйте вручную не реже раза в полгода (I-22). Сам индекс NDX на бесплатных тарифах недоступен — используйте QQQ или фьючерс NASD на Мосбирже.",
  "items": [
   {
    "ticker": "AAPL",
@@ -405,6 +405,32 @@
   {
    "ticker": "MRVL",
    "name": "Marvell"
+  }
+ ],
+ "etfs": [
+  {
+   "ticker": "QQQ",
+   "name": "Invesco QQQ — индекс Nasdaq-100 (ETF)"
+  },
+  {
+   "ticker": "QQQM",
+   "name": "Invesco Nasdaq 100 ETF — индекс Nasdaq-100"
+  },
+  {
+   "ticker": "TQQQ",
+   "name": "ProShares UltraPro QQQ — Nasdaq-100 ×3"
+  },
+  {
+   "ticker": "SQQQ",
+   "name": "ProShares UltraPro Short QQQ — Nasdaq-100 ×(−3)"
+  },
+  {
+   "ticker": "SPY",
+   "name": "SPDR S&P 500 ETF"
+  },
+  {
+   "ticker": "VOO",
+   "name": "Vanguard S&P 500 ETF"
   }
  ]
 }

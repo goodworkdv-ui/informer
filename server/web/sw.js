@@ -1,5 +1,5 @@
 // Кэш оболочки приложения; данные кэшируются в localStorage самим приложением (офлайн-просмотр).
-const CACHE = "informer-v4-2";
+const CACHE = "informer-v4-3";
 const SHELL = ["/", "/static/app.js", "/static/style.css", "/static/manifest.webmanifest", "/static/icon-192.png"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(

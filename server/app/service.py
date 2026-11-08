@@ -56,7 +56,10 @@ def position_row(p: dict) -> dict:
         "yield": qt["yield"] if qt else None,
         "rating": daily_rating(inst),
         **m, **futures_status(inst),
+        "watch": p["quantity"] == 0,
     }
+    if row["watch"]:
+        row.update({"value": None, "pnl": None, "pnl_pct": None, "cost": None})
     return row
 
 
@@ -75,16 +78,22 @@ def portfolio_view(pid: int) -> dict:
 
 
 def validate_position(inst: dict, quantity, avg_price) -> tuple[int, float]:
-    """P-03, P-04, P-07: целое количество, шорт только для фьючерсов, цена > 0."""
+    """P-03, P-04, P-07: целое количество, шорт только для фьючерсов, цена > 0.
+    Без количества и цены бумага добавляется в наблюдение (quantity = 0)."""
+    empty = lambda v: v is None or (isinstance(v, str) and not v.strip())
+    if empty(quantity) and empty(avg_price):
+        return 0, 0.0
     try:
         qf = float(quantity)
     except (TypeError, ValueError):
-        raise ValueError("Количество должно быть целым числом")
+        raise ValueError("Количество должно быть целым числом (или оставьте оба поля пустыми — для наблюдения)")
     if qf != int(qf):
         raise ValueError("Количество должно быть целым: дробные бумаги и лоты не поддерживаются")
     q = int(qf)
     if q == 0:
-        raise ValueError("Количество не может быть нулём: закрытую позицию удалите")
+        if empty(avg_price) or float(avg_price) == 0:
+            return 0, 0.0
+        raise ValueError("Количество не может быть нулём: закрытую позицию удалите или оставьте поля пустыми для наблюдения")
     if q < 0 and inst["asset_class"] != "futures":
         raise ValueError("Отрицательное количество (шорт) допустимо только для фьючерсов")
     try:
@@ -304,6 +313,11 @@ async def bot_command(text: str) -> str:
             v = portfolio_view(pf["id"])
             lines.append(f"<b>{html.escape(pf['name'])}</b>")
             for r in v["positions"]:
+                if r.get("watch"):
+                    ch = f" {r['change_pct']:+.2f}%" if r.get("change_pct") is not None else ""
+                    lines.append(f"  👁 {html.escape(r['code'])}: {r['price'] if r['price'] is not None else '—'}{ch}"
+                                 f" {r['rating']['label'] if r.get('rating') else ''}")
+                    continue
                 rec = r["rating"]["label"] if r.get("rating") else (f"YTM {r['yield']:.2f}%" if r.get("yield") else "")
                 pnl = _money(r["pnl"], r["currency"])
                 lines.append(f"  {html.escape(r['code'])} ×{r['quantity']}: {_money(r['value'], r['currency'])}, "

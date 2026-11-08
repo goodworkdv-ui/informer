@@ -117,14 +117,15 @@ class PositionIn(BaseModel):
     portfolio_id: int
     exchange: str
     code: str
-    quantity: float
-    avg_price: float
+    name: str | None = None
+    quantity: float | None = None
+    avg_price: float | None = None
     opened_at: str | None = None
 
 
 class PositionPatch(BaseModel):
-    quantity: float
-    avg_price: float
+    quantity: float | None = None
+    avg_price: float | None = None
     opened_at: str | None = None
 
 
@@ -132,7 +133,7 @@ class PositionPatch(BaseModel):
 async def add_position(body: PositionIn):
     if not db.q1("SELECT 1 FROM portfolio WHERE id=?", (body.portfolio_id,)):
         raise KeyError("Портфель не найден")
-    inst = await instruments.ensure(body.exchange.upper(), body.code)
+    inst = await instruments.ensure(body.exchange.upper(), body.code, body.name)
     q, price = service.validate_position(inst, body.quantity, body.avg_price)
     pid = db.x("INSERT INTO position(portfolio_id,instrument_id,quantity,avg_price,opened_at) VALUES(?,?,?,?,?)",
                (body.portfolio_id, inst["id"], q, price, body.opened_at or None))
@@ -165,11 +166,12 @@ async def search(q: str):
 class InstrumentIn(BaseModel):
     exchange: str
     code: str
+    name: str | None = None
 
 
 @app.post("/api/instruments", dependencies=A)
 async def add_instrument(body: InstrumentIn):
-    return await instruments.ensure(body.exchange.upper(), body.code)
+    return await instruments.ensure(body.exchange.upper(), body.code, body.name)
 
 
 @app.get("/api/instruments/{inst_id}", dependencies=A)

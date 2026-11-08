@@ -55,23 +55,43 @@ async def quote(ticker: str) -> dict:
             "volume": None, "accrued_interest": None, "yield": None, "ts": ts, "stale": False}
 
 
+def _local_items() -> list[dict]:
+    return config.NASDAQ100.get("etfs", []) + config.NASDAQ100["items"]
+
+
 def search_local(q: str, limit: int = 20) -> list[dict]:
-    """Поиск по справочнику Nasdaq-100 (P-02, I-22)."""
+    """Поиск по справочнику Nasdaq-100 и фондам на индексы (P-02, I-22)."""
     ql = q.strip().lower()
     out = []
-    for it in config.NASDAQ100["items"]:
-        if ql in it["ticker"].lower() or ql in it["name"].lower():
+    for it in _local_items():
+        if ql in it["ticker"].lower() or ql in it["name"].lower() or (ql in ("nasdaq", "ndx", "nasdaq100", "nasdaq-100") and "Nasdaq-100" in it["name"]):
             out.append({"exchange": "NASDAQ", "code": it["ticker"], "name": it["name"], "isin": None,
                         "asset_class": "equity_us"})
     out.sort(key=lambda r: (r["code"].lower() != ql, not r["code"].lower().startswith(ql), r["code"]))
     return out[:limit]
 
 
-def spec(ticker: str) -> dict:
-    it = next((i for i in config.NASDAQ100["items"] if i["ticker"] == ticker.upper()), None)
-    if not it:
-        raise ProviderError(f"{ticker} нет в справочнике Nasdaq-100")
-    return {"exchange": "NASDAQ", "code": it["ticker"], "name": it["name"], "isin": None,
+async def search_online(q: str, limit: int = 10) -> list[dict]:
+    """Поиск любых акций и ETF США через Finnhub /search (если задан ключ)."""
+    if not config.FINNHUB_KEY or len(q.strip()) < 1:
+        return []
+    j = await finnhub("/search", {"q": q.strip(), "exchange": "US"})
+    out = []
+    for r in (j or {}).get("result", []):
+        sym = r.get("symbol") or ""
+        if not sym or "." in sym or ":" in sym or r.get("type") not in ("Common Stock", "ETP", "ADR", ""):
+            continue
+        out.append({"exchange": "NASDAQ", "code": sym, "name": r.get("description") or sym, "isin": None,
+                    "asset_class": "equity_us"})
+    return out[:limit]
+
+
+def spec(ticker: str, name: str | None = None) -> dict:
+    t = ticker.strip().upper()
+    if not t or not all(c.isalnum() or c in "-" for c in t):
+        raise ProviderError(f"Неверный тикер: {ticker}")
+    it = next((i for i in _local_items() if i["ticker"] == t), None)
+    return {"exchange": "NASDAQ", "code": t, "name": (it or {}).get("name") or name or t, "isin": None,
             "asset_class": "equity_us", "currency": "USD", "engine": None, "market": None, "board": None}
 
 

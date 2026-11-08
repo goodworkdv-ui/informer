@@ -53,7 +53,7 @@ def portfolio_totals(rows: list[dict], threshold: float) -> dict:
     """Итоги отдельно по USD и RUB без кросс-конвертации (P-08) и доли позиций (P-09)."""
     totals = {}
     for cur in ("USD", "RUB"):
-        part = [r for r in rows if r["currency"] == cur]
+        part = [r for r in rows if r["currency"] == cur and not r.get("watch")]
         value = sum(r["value"] or 0 for r in part)
         pnl = sum(r["pnl"] or 0 for r in part)
         cost = sum(r["cost"] or 0 for r in part if r["cost"])
@@ -63,7 +63,7 @@ def portfolio_totals(rows: list[dict], threshold: float) -> dict:
     for r in rows:
         tot = totals[r["currency"]]["value"]
         # доля считается по стоимости; фьючерсы входят результатом, поэтому для них доля не считается
-        if r["asset_class"] != "futures" and tot and r["value"] is not None:
+        if r["asset_class"] != "futures" and not r.get("watch") and tot and r["value"] is not None:
             r["share_pct"] = 100 * r["value"] / tot
             if r["share_pct"] > threshold:
                 warnings.append(f"{r['code']}: доля {r['share_pct']:.1f}% выше порога {threshold:g}%")

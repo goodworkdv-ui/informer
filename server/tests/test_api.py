@@ -91,3 +91,20 @@ def test_alerts(client):
     assert len(rows) == 3 and all(r["last_state"] is not None for r in rows)
     h = client.get("/api/health").json()
     assert h["alerts_active"] == 3
+
+
+def test_watch_only_and_etf_search(client):
+    pid = client.post("/api/portfolios", json={"name": "Наблюдение"}).json()["id"]
+    r = client.post("/api/positions", json={"portfolio_id": pid, "exchange": "NASDAQ", "code": "SQQQ"})
+    assert r.status_code == 200
+    client.post("/api/positions", json={"portfolio_id": pid, "exchange": "NASDAQ", "code": "AAPL", "quantity": 2, "avg_price": 200})
+    bad = client.post("/api/positions", json={"portfolio_id": pid, "exchange": "NASDAQ", "code": "MSFT", "quantity": 2})
+    assert bad.status_code == 400
+    v = client.get(f"/api/portfolios/{pid}").json()
+    pos = {p["code"]: p for p in v["positions"]}
+    assert pos["SQQQ"]["watch"] is True and pos["SQQQ"]["value"] is None and pos["SQQQ"]["price"] is not None
+    assert v["totals"]["USD"]["count"] == 1 and v["totals"]["USD"]["value"] == pytest.approx(2 * 231.4)
+    assert pos["AAPL"]["share_pct"] == pytest.approx(100)
+    codes = [x["code"] for x in client.get("/api/search?q=nasdaq").json()]
+    assert "QQQ" in codes and "SQQQ" in codes
+    assert client.get("/api/search?q=sqqq").json()[0]["code"] == "SQQQ"
