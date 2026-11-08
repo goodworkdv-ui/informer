@@ -145,7 +145,7 @@ function posRow(r) {
   meta.push(`<span class="muted num" style="font-size:12.5px">${fmtPrice(r.price)}${r.asset_class === "bond_ru" ? "%" : ""}
     ${r.change_pct != null ? `<span class="${cls(r.change_pct)}">${signed(r.change_pct)}%</span>` : ""}</span>`);
   if (r.asset_class === "bond_ru") meta.push(`<span class="pill">YTM ${r.yield != null ? nf(r.yield) + "%" : "н/д"}</span>`);
-  else meta.push(`<span class="pill ${r.rating ? r.rating.rating : ""}">${r.rating ? esc(r.rating.label) : "ТА: нет данных"}</span>`);
+  else meta.push(`<a class="pill ${r.rating ? r.rating.rating : ""}" href="#inst-${r.instrument_id}" style="text-decoration:none" title="Открыть технический анализ">${r.rating ? esc(r.rating.label) : "ТА: ждёт данных"} · Анализ →</a>`);
   if (r.share_pct != null) meta.push(`<span class="muted" style="font-size:12px">доля ${nf(r.share_pct, 1)}%</span>`);
   if (r.expired) meta.push(`<span class="pill sell">истёк</span>`);
   else if (r.liquidity_warning) meta.push(`<span class="pill warn">экспирация ${dmy(r.expiry_date)}</span>`);
