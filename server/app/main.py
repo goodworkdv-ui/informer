@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import hmac
+import os
 import logging
 from contextlib import asynccontextmanager
 
@@ -14,7 +15,12 @@ from pydantic import BaseModel
 from . import alerts, config, db, indicators, instruments, service, telegram
 from .timeutil import TIMEFRAMES, now_iso
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+from logging.handlers import RotatingFileHandler
+
+LOG_FILE = config.BASE_DIR / "informer.log"
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
+                    handlers=[logging.StreamHandler(),
+                              RotatingFileHandler(LOG_FILE, maxBytes=2_000_000, backupCount=3, encoding="utf-8")])
 WEB = config.BASE_DIR / "web"
 
 
@@ -312,8 +318,25 @@ app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 
 def run():
+    import socket
+    import webbrowser
+
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=config.PORT, log_level="info")
+    url = f"http://127.0.0.1:{config.PORT}"
+    with socket.socket() as s:
+        if s.connect_ex(("127.0.0.1", config.PORT)) == 0:
+            logging.error("Порт %s уже занят: сервер уже запущен или порт занят другой программой. "
+                          "Откройте %s или смените PORT в .env", config.PORT, url)
+            raise SystemExit(2)
+    logging.info("База: %s", config.DB_PATH)
+    logging.info("Ключи: Finnhub=%s, Twelve Data=%s, Telegram=%s, токен входа=%s",
+                 *("задан" if v else "НЕТ" for v in (config.FINNHUB_KEY, config.TWELVEDATA_KEY,
+                                                     config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID, config.APP_TOKEN)))
+    logging.info("Сервер запускается: %s  (окно не закрывайте, остановка — Ctrl+C)", url)
+    if not os.environ.get("INFORMER_NO_BROWSER"):
+        import threading
+        threading.Timer(3, lambda: webbrowser.open(url)).start()
+    uvicorn.run(app, host="127.0.0.1", port=config.PORT, log_level="info", log_config=None)
 
 
 if __name__ == "__main__":
