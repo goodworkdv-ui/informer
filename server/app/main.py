@@ -21,6 +21,9 @@ LOG_FILE = config.BASE_DIR / "informer.log"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                     handlers=[logging.StreamHandler(),
                               RotatingFileHandler(LOG_FILE, maxBytes=2_000_000, backupCount=3, encoding="utf-8")])
+# httpx пишет в журнал полный URL запроса, а в URL Telegram есть токен бота — такие строки не логируем
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 WEB = config.BASE_DIR / "web"
 
 
@@ -45,7 +48,7 @@ def auth(request: Request):
     if not config.APP_TOKEN:
         return
     tok = request.headers.get("x-token") or request.query_params.get("token") or ""
-    if not hmac.compare_digest(tok, config.APP_TOKEN):
+    if not hmac.compare_digest(tok.encode("utf-8"), config.APP_TOKEN.encode("utf-8")):
         raise HTTPException(401, "Нужен токен доступа (Настройки → Токен)")
 
 
@@ -328,6 +331,11 @@ def run():
             logging.error("Порт %s уже занят: сервер уже запущен или порт занят другой программой. "
                           "Откройте %s или смените PORT в .env", config.PORT, url)
             raise SystemExit(2)
+    if config.APP_TOKEN and (not config.APP_TOKEN.isascii() or "замените" in config.APP_TOKEN or " " in config.APP_TOKEN):
+        logging.error("APP_TOKEN в .env должен состоять из латинских букв и цифр без пробелов, например: %s",
+                      __import__("secrets").token_urlsafe(24))
+        logging.error("Исправьте APP_TOKEN в файле .env (можно взять строку выше) и запустите start.bat снова.")
+        raise SystemExit(2)
     logging.info("База: %s", config.DB_PATH)
     logging.info("Ключи: Finnhub=%s, Twelve Data=%s, Telegram=%s, токен входа=%s",
                  *("задан" if v else "НЕТ" for v in (config.FINNHUB_KEY, config.TWELVEDATA_KEY,

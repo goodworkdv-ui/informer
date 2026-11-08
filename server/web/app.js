@@ -439,7 +439,11 @@ document.addEventListener("click", async e => {
     switch (d.act) {
       case "reload": load(); break;
       case "close": closeSheet(); break;
-      case "saveToken": store.set("token", $("#tokenIn").value.trim()); load(); break;
+      case "saveToken": {
+        const t = $("#tokenIn").value.trim();
+        if (!/^[\x21-\x7e]+$/.test(t)) { alertBanner("Токен должен состоять из латинских букв и цифр, без пробелов и кириллицы"); break; }
+        store.set("token", t); load(); break;
+      }
       case "logout": store.set("token", ""); viewToken(); break;
       case "newPortfolio":
         openSheet(`<h3>Новый портфель</h3><label class="f" for="pfn">Название<input class="i" id="pfn" placeholder="Например, Долгосрок"></label>
